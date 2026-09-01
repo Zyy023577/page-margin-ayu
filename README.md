@@ -1,0 +1,44 @@
+# 页边的阿屿
+
+一个本地优先的 AI 共读小说应用。上传 EPUB 后，原书、阅读进度、样式、个人笔记与页边批注都保存在当前浏览器的 IndexedDB 中。AI 只通过服务端接口接收本次回答所需的最少文本；未配置 API 时会自动进入有明确标记的演示模式。
+
+## 启动
+
+需要 Node.js 20 或更高版本。
+
+```bash
+pnpm install
+pnpm dev
+```
+
+然后打开 http://localhost:5173 。也可使用 `npm install && npm run dev`。
+
+## 配置 AI（可选）
+
+复制 `.env.example` 为 `.env`，填写兼容 OpenAI Chat Completions 的服务：
+
+```env
+AI_API_KEY=你的密钥
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
+```
+
+留空不会影响上传、阅读、进度保存和个人笔记，只会使用“演示批注模式”。密钥只存在服务端环境变量中，不会进入浏览器代码。
+
+## 构建与预览
+
+```bash
+pnpm build
+pnpm preview
+```
+
+## 隐私边界
+
+- EPUB 原文件不上传，保存在浏览器 IndexedDB。
+- AI 请求只包含选中文字、已读上下文、此前章节的短记忆与相关笔记。
+- 前端不包含 API Key。
+- 严格禁止剧透默认开启；服务端提示词再次执行边界约束。
+
+## 当前能力
+
+EPUB 上传与元数据/封面/目录解析、书架、分页或滚动、章节跳转、键盘翻页、全屏、三种主题、字号/行距/页边距、自动进度恢复、CFI 绑定笔记与 AI 批注、点击批注返回原文、四种陪读风格、响应式手机批注抽屉、演示 AI 模式。
