@@ -1,4 +1,14 @@
-node_modules
-dist
 .env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local caches and test output
+.pnpm-store/
+.vite/
+coverage/
+.cache/
 *.log
