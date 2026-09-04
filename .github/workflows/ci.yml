@@ -34,5 +34,8 @@ jobs:
       - name: Type check
         run: pnpm exec tsc -b
 
+      - name: Unit tests
+        run: pnpm test
+
       - name: Production build
         run: pnpm exec vite build

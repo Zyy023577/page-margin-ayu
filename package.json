@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "build": "tsc -b && vite build",
+    "test": "vitest run",
     "preview": "node server.mjs --production"
   },
   "dependencies": {
@@ -25,6 +26,8 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "latest"
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "latest",
+    "vitest": "^4.1.11"
   }
 }
