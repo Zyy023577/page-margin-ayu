@@ -15,13 +15,14 @@ pnpm dev
 
 ## 配置 AI（可选）
 
-复制 `.env.example` 为 `.env`，填写兼容 OpenAI Chat Completions 的服务：
+复制 `.env.example` 为 `.env`。使用 OpenAI Responses API：
 
 ```env
-AI_API_KEY=你的密钥
-AI_BASE_URL=https://api.openai.com/v1
-AI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=你的密钥
+AI_MODEL=gpt-5.4-mini
 ```
+
+也可以设置 `AI_PROVIDER=compatible`、`AI_API_KEY` 和 `AI_BASE_URL`，连接兼容 OpenAI Chat Completions 的服务。密钥始终只从服务端环境变量读取。
 
 留空不会影响上传、阅读、进度保存和个人笔记，只会使用“演示批注模式”。密钥只存在服务端环境变量中，不会进入浏览器代码。
 
@@ -41,4 +42,4 @@ pnpm preview
 
 ## 当前能力
 
-EPUB 上传与元数据/封面/目录解析、书架、分页或滚动、章节跳转、键盘翻页、全屏、三种主题、字号/行距/页边距、自动进度恢复、CFI 绑定笔记与 AI 批注、点击批注返回原文、四种陪读风格、响应式手机批注抽屉、演示 AI 模式。
+EPUB 上传与元数据/封面/目录解析、书架、分页或滚动、章节跳转、键盘翻页、全屏、三种主题、字号/行距/页边距、自动进度恢复、CFI 绑定笔记与 AI 批注、章节记忆、四种陪读风格、流式 AI 回答、取消与超时、失败重试和演示模式回退。

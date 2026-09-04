@@ -17,6 +17,9 @@ export function validateAiRequest(body){
   for(const note of body.notes){
     if(!note||typeof note!=='object'||typeof note.quote!=='string'||typeof note.content!=='string'||note.quote.length>1000||note.content.length>2000||('chapter' in note&&typeof note.chapter!=='string'))return{ok:false,error:'相关笔记格式或长度无效。'};
   }
+  const recentAnnotations=body.recentAnnotations??[];
+  if(!Array.isArray(recentAnnotations)||recentAnnotations.length>8)return{ok:false,error:'最近批注数量超出限制。'};
+  for(const item of recentAnnotations)if(!item||typeof item!=='object'||typeof item.content!=='string'||item.content.length>2000||!['note','ai'].includes(item.kind))return{ok:false,error:'最近批注格式无效。'};
   if(!string(body.selectedText).trim()&&!string(body.chapterReadText).trim())return{ok:false,error:'没有可用的已读内容。'};
   if(body.noSpoilers!==false){
     const proof=body.boundaryProof;
@@ -26,7 +29,7 @@ export function validateAiRequest(body){
     if(proof.contextChars!==context.length||proof.contextHash!==hash)return{ok:false,error:'已读内容与 CFI 边界证明不一致。'};
     for(const forbidden of ['fullChapter','chapterAfter','unreadText','nextChapter'])if(forbidden in body)return{ok:false,error:'禁止剧透模式不接受未读正文字段。'};
   }
-  return{ok:true,value:{action,style,selectedText:string(body.selectedText),chapterReadText:string(body.chapterReadText),selectionBefore:string(body.selectionBefore),selectionAfter:string(body.selectionAfter),previousMemory:string(body.previousMemory),notes:body.notes,noSpoilers:body.noSpoilers!==false,boundaryProof:body.boundaryProof}};
+  return{ok:true,value:{action,style,selectedText:string(body.selectedText),chapterReadText:string(body.chapterReadText),selectionBefore:string(body.selectionBefore),selectionAfter:string(body.selectionAfter),previousMemory:string(body.previousMemory),notes:body.notes,recentAnnotations,noSpoilers:body.noSpoilers!==false,boundaryProof:body.boundaryProof}};
 }
 
 export function validateMemoryRequest(body){
