@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
-import { validateAiRequest } from './serverValidation.mjs';
+import { normalizeMemoryResponse, validateAiRequest, validateMemoryRequest } from './serverValidation.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 loadEnv(path.join(root, '.env'));
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '64kb' }));
+app.use(express.json({ limit: '128kb' }));
 
 app.get('/api/status', (_req, res) => res.json({ mode: process.env.AI_API_KEY ? 'live' : 'demo' }));
 app.post('/api/ai', async (req, res) => {
@@ -27,6 +27,17 @@ app.post('/api/ai', async (req, res) => {
     const data = await upstream.json();
     res.json({ demo: false, content: data.choices?.[0]?.message?.content || '阿屿刚才走神了，再问一次好吗？' });
   } catch (error) { res.status(502).json({ error: `AI 暂时没有回应：${error.message}` }); }
+});
+
+app.post('/api/memory',async(req,res)=>{
+  const validation=validateMemoryRequest(req.body);
+  if(!validation.ok)return res.status(400).json({error:validation.error});
+  const {chapterLabel,chapterText,notes}=validation.value;
+  if(!process.env.AI_API_KEY)return res.json({demo:true,memory:demoMemory(chapterText,notes)});
+  const base=(process.env.AI_BASE_URL||'https://api.openai.com/v1').replace(/\/$/,'');
+  const system='你负责为小说共读生成短期章节记忆。只依据提供的已读章节；明确事实与猜测必须严格分开。输出纯 JSON，字段固定为 facts、characterStates、relationshipChanges、clues、userFocus、hypotheses，每项为简短字符串数组。不要大段复述原文。';
+  const prompt=`章节：${chapterLabel}\n已读完的章节正文：${chapterText}\n用户在本章的笔记：${JSON.stringify(notes)}`;
+  try{const upstream=await fetch(`${base}/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${process.env.AI_API_KEY}`},body:JSON.stringify({model:process.env.AI_MODEL||'gpt-4o-mini',messages:[{role:'system',content:system},{role:'user',content:prompt}],temperature:0.2,max_tokens:700,response_format:{type:'json_object'}})});if(!upstream.ok)throw new Error(`上游服务返回 ${upstream.status}`);const data=await upstream.json();const raw=data.choices?.[0]?.message?.content||'{}';const parsed=JSON.parse(raw.replace(/^```json\s*|\s*```$/g,''));return res.json({demo:false,memory:normalizeMemoryResponse(parsed)});}catch(error){return res.status(502).json({error:`章节记忆生成失败：${error.message}`});}
 });
 
 if (process.argv.includes('--production')) {
@@ -58,4 +69,5 @@ function demoReply(action, text, style, notes = []) {
   const opening = (alternatives[style] || alternatives.quiet)[seed % 3];
   return `${opening} ${tone}${variants[action] || variants.ask}`;
 }
+function demoMemory(_text,notes){return normalizeMemoryResponse({facts:['本章已读完（演示模式不生成具体情节摘要）'],userFocus:notes.slice(-5).map(note=>`${note.quote}：${note.content}`),hypotheses:[]});}
 function loadEnv(file) { if (!fs.existsSync(file)) return; for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) { const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, ''); } }

@@ -2,12 +2,14 @@ import Dexie, { type Table } from 'dexie';
 export interface BookRecord { id: string; title: string; author: string; cover?: Blob; file: Blob; addedAt: number; progress: number; location?: string; toc?: { label: string; href: string }[]; }
 export interface Annotation { id?: number; bookId: string; cfi: string; quote: string; content: string; kind: 'note' | 'ai'; demo?: boolean; chapter?: string; createdAt: number; }
 export interface Setting { bookId: string; fontSize: number; lineHeight: number; margin: number; theme: 'light'|'sepia'|'dark'; style: string; noSpoilers: boolean; flow: 'paginated'|'scrolled-doc'; }
-class AyuDB extends Dexie { books!: Table<BookRecord, string>; annotations!: Table<Annotation, number>; settings!: Table<Setting, string>; constructor(){ super('page-margin-ayu'); this.version(1).stores({ books:'id,addedAt', annotations:'++id,bookId,cfi,createdAt', settings:'bookId' }); this.version(2).stores({ books:'id,addedAt', annotations:'++id,bookId,cfi,createdAt', settings:'bookId' }).upgrade(tx=>tx.table('books').toCollection().modify(book=>{if(typeof book.cover==='string')delete book.cover;})); } }
+export interface ChapterMemory { id:string; bookId:string; chapterHref:string; chapterLabel:string; completedAt:number; endCfi:string; facts:string[]; characterStates:string[]; relationshipChanges:string[]; clues:string[]; userFocus:string[]; hypotheses:string[]; }
+class AyuDB extends Dexie { books!: Table<BookRecord, string>; annotations!: Table<Annotation, number>; settings!: Table<Setting, string>; chapterMemories!:Table<ChapterMemory,string>; constructor(){ super('page-margin-ayu'); this.version(1).stores({ books:'id,addedAt', annotations:'++id,bookId,cfi,createdAt', settings:'bookId' }); this.version(2).stores({ books:'id,addedAt', annotations:'++id,bookId,cfi,createdAt', settings:'bookId' }).upgrade(tx=>tx.table('books').toCollection().modify(book=>{if(typeof book.cover==='string')delete book.cover;})); this.version(3).stores({books:'id,addedAt',annotations:'++id,bookId,cfi,createdAt',settings:'bookId',chapterMemories:'id,bookId,chapterHref,completedAt'}); } }
 export const db = new AyuDB();
 
 export async function deleteBookData(bookId:string){
-  await db.transaction('rw',db.books,db.annotations,db.settings,async()=>{
+  await db.transaction('rw',db.books,db.annotations,db.settings,db.chapterMemories,async()=>{
     await db.annotations.where('bookId').equals(bookId).delete();
+    await db.chapterMemories.where('bookId').equals(bookId).delete();
     await db.settings.delete(bookId);
     await db.books.delete(bookId);
   });

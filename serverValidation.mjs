@@ -29,4 +29,20 @@ export function validateAiRequest(body){
   return{ok:true,value:{action,style,selectedText:string(body.selectedText),chapterReadText:string(body.chapterReadText),selectionBefore:string(body.selectionBefore),selectionAfter:string(body.selectionAfter),previousMemory:string(body.previousMemory),notes:body.notes,noSpoilers:body.noSpoilers!==false,boundaryProof:body.boundaryProof}};
 }
 
+export function validateMemoryRequest(body){
+  if(!body||typeof body!=='object'||Array.isArray(body))return{ok:false,error:'章节记忆请求格式无效。'};
+  for(const field of ['bookId','chapterHref','chapterLabel','chapterText','endCfi'])if(typeof body[field]!=='string'||!body[field].trim())return{ok:false,error:`字段 ${field} 格式无效。`};
+  if(body.bookId.length>100||body.chapterHref.length>1000||body.chapterLabel.length>300||body.chapterText.length>30000||body.endCfi.length>1000)return{ok:false,error:'章节记忆字段超出长度限制。'};
+  if(!body.endCfi.startsWith('epubcfi('))return{ok:false,error:'章节记忆缺少有效的结束 CFI。'};
+  if(!Array.isArray(body.notes)||body.notes.length>20)return{ok:false,error:'章节笔记格式无效。'};
+  for(const note of body.notes)if(!note||typeof note!=='object'||typeof note.quote!=='string'||typeof note.content!=='string'||note.quote.length>1000||note.content.length>2000)return{ok:false,error:'章节笔记格式无效。'};
+  return{ok:true,value:{bookId:body.bookId,chapterHref:body.chapterHref,chapterLabel:body.chapterLabel,chapterText:body.chapterText,endCfi:body.endCfi,notes:body.notes}};
+}
+
+export function normalizeMemoryResponse(value){
+  const input=value&&typeof value==='object'?value:{};
+  const fields=['facts','characterStates','relationshipChanges','clues','userFocus','hypotheses'];
+  return Object.fromEntries(fields.map(field=>[field,Array.isArray(input[field])?input[field].filter(item=>typeof item==='string').map(item=>item.replace(/\s+/g,' ').trim().slice(0,300)).filter(Boolean).slice(0,8):[]]));
+}
+
 function string(value){return typeof value==='string'?value:'';}
