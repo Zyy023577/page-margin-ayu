@@ -10,3 +10,34 @@
 @media(max-width:600px){.context-backdrop{padding:0;align-items:end}.context-preview{max-height:88vh;padding:18px}.context-boundary,.context-footer{align-items:flex-start;flex-direction:column}.context-footer>div{width:100%}.context-footer button{flex:1}}
 .memory-status{margin:-6px 16px 8px;color:var(--muted);font-size:9px;text-align:center}
 .annotation.streaming{padding:16px 14px!important}.annotation.streaming p{font:13px/1.75 "Noto Serif SC"}.annotation.streaming p:after{content:"";display:inline-block;width:1px;height:1em;margin-left:3px;background:currentColor;vertical-align:-2px;animation:blink 1s steps(2) infinite}.cancel-generation{border:1px solid var(--line)!important;padding:6px 10px!important;color:var(--muted);font-size:10px}.toast{align-items:center;max-width:min(620px,calc(100vw - 40px))}.toast>span{line-height:1.5}.toast>button:not(:last-child){border:1px solid #ffffff70!important;padding:5px 9px!important;white-space:nowrap}@keyframes blink{50%{opacity:0}}
+.page-shell{touch-action:pan-y;overscroll-behavior-x:contain}.drawer-grab{display:none}
+@media(max-width:800px){
+  .reader-top{height:calc(58px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
+  .reader-body{height:calc(100dvh - 58px - env(safe-area-inset-top))}
+  .tools-hidden .reader-body{margin-top:calc(-58px - env(safe-area-inset-top))}
+  .page-shell{touch-action:pan-y;min-height:0}
+  .selection-card{bottom:calc(12px + env(safe-area-inset-bottom));max-height:calc(100dvh - 20px);overflow:auto;padding-bottom:calc(13px + env(safe-area-inset-bottom))}
+  .selection-actions{padding-right:22px;gap:2px}
+  .selection-actions button{min-height:42px}
+  .drawer-grab{display:block;width:42px;height:5px;border-radius:5px;background:var(--muted);opacity:.45;margin:8px auto 3px;touch-action:none}
+  .notes{height:min(62vh,640px);padding-bottom:env(safe-area-inset-bottom);touch-action:pan-y}
+  .notes.drawer-dragging{transition:none}
+  .notes .panel-head{height:54px}
+  .mobile-page-nav{bottom:calc(12px + env(safe-area-inset-bottom))}
+  .page-progress{bottom:calc(58px + env(safe-area-inset-bottom))}
+  .annotation-list{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .chapter-chat{margin-bottom:calc(15px + env(safe-area-inset-bottom))!important}
+}
+@media (orientation:landscape) and (max-width:900px){
+  .reader-top{height:calc(48px + env(safe-area-inset-top))}
+  .reader-body{height:calc(100dvh - 48px - env(safe-area-inset-top))}
+  .tools-hidden .reader-body{margin-top:calc(-48px - env(safe-area-inset-top))}
+  .notes{height:min(82dvh,360px)}
+  .notes .panel-head{height:46px}
+  .companion{margin:7px 12px;padding:7px 10px}
+  .selection-card{width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 10px)}
+  .selection-actions{display:flex;flex-wrap:wrap}
+  .selection-actions button{flex:1;min-width:130px}
+  .mobile-page-nav{height:38px}
+  .page-progress{bottom:calc(52px + env(safe-area-inset-bottom))}
+}
