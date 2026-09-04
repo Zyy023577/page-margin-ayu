@@ -4,21 +4,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
+import { validateAiRequest } from './serverValidation.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 loadEnv(path.join(root, '.env'));
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '300kb' }));
+app.use(express.json({ limit: '64kb' }));
 
 app.get('/api/status', (_req, res) => res.json({ mode: process.env.AI_API_KEY ? 'live' : 'demo' }));
 app.post('/api/ai', async (req, res) => {
-  const { action, selectedText = '', contextBefore = '', previousMemory = '', style = 'quiet', noSpoilers = true, notes = [] } = req.body || {};
-  if (!selectedText.trim() && !contextBefore.trim()) return res.status(400).json({ error: '请先选择一段文字，或读完当前章节后再来聊聊。' });
+  const validation = validateAiRequest(req.body);
+  if (!validation.ok) return res.status(400).json({ error: validation.error });
+  const { action, selectedText, chapterReadText, selectionBefore, selectionAfter, previousMemory, style, noSpoilers, notes } = validation.value;
   if (!process.env.AI_API_KEY) return res.json({ demo: true, content: demoReply(action, selectedText, style, notes) });
   const base = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
   const system = `你叫阿屿，是熟悉、克制、自然的共读搭子。风格：${style}。${noSpoilers ? '严格禁止剧透：只能使用给出的已读内容，不得推测成事实，不得透露后文。' : '仍然只根据提供的内容回答。'}不要使用“这段文字体现了”等语文老师式模板。回答简洁、有温度。`;
-  const prompt = `用户动作：${action}\n选中文字：${selectedText}\n当前章节读到这里之前：${contextBefore.slice(-12000)}\n此前章节记忆：${previousMemory.slice(-3000)}\n相关笔记：${JSON.stringify(notes).slice(0, 2000)}`;
+  const prompt = `用户动作：${action}\n选中文字：${selectedText}\n选区前安全上下文：${selectionBefore}\n选区后安全上下文：${selectionAfter}\n本章严格截至当前 CFI 的已读内容：${chapterReadText}\n此前章节记忆：${previousMemory}\n相关笔记：${JSON.stringify(notes).slice(0, 2000)}`;
   try {
     const upstream = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.AI_API_KEY}` }, body: JSON.stringify({ model: process.env.AI_MODEL || 'gpt-4o-mini', messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }], temperature: 0.8, max_tokens: 500 }) });
     if (!upstream.ok) throw new Error(`上游服务返回 ${upstream.status}`);

@@ -8,6 +8,7 @@
     "dev": "node server.mjs",
     "build": "tsc -b && vite build",
     "test": "vitest run",
+    "test:spoiler": "vitest run src/readerContext.test.ts serverValidation.test.ts",
     "preview": "node server.mjs --production"
   },
   "dependencies": {
@@ -23,10 +24,12 @@
   },
   "devDependencies": {
     "@types/express": "latest",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
     "typescript": "latest",
     "vitest": "^4.1.11"
   }
