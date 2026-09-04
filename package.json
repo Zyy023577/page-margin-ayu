@@ -17,10 +17,12 @@
     "dexie": "latest",
     "epubjs": "latest",
     "express": "latest",
+    "express-rate-limit": "^8.7.0",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/express": "latest",
@@ -28,8 +30,10 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/supertest": "^7.2.1",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
+    "supertest": "^7.2.2",
     "typescript": "latest",
     "vitest": "^4.1.11"
   }

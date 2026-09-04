@@ -1,46 +1,27 @@
 import crypto from 'node:crypto';
+import { z } from 'zod';
 
-export const ACTIONS=new Set(['ask','explain','psychology','discuss']);
-export const STYLES=new Set(['quiet','snarky','literary','emotion']);
-const limits={selectedText:2000,chapterReadText:16000,selectionBefore:500,selectionAfter:500,previousMemory:3000,notes:8};
+export const ACTIONS=['ask','explain','psychology','discuss'];
+export const STYLES=['quiet','snarky','literary','emotion'];
 
-export function validateAiRequest(body){
-  if(!body||typeof body!=='object'||Array.isArray(body))return{ok:false,error:'请求格式无效。'};
-  const action=string(body.action);const style=string(body.style||'quiet');
-  if(!ACTIONS.has(action))return{ok:false,error:'不支持的操作。'};
-  if(!STYLES.has(style))return{ok:false,error:'不支持的陪读风格。'};
-  for(const field of ['selectedText','chapterReadText','selectionBefore','selectionAfter','previousMemory']){
-    if(typeof (body[field]??'')!=='string')return{ok:false,error:`字段 ${field} 格式无效。`};
-    if((body[field]||'').length>limits[field])return{ok:false,error:`字段 ${field} 超出长度限制。`};
+const noteSchema=z.object({quote:z.string().max(1000),content:z.string().max(2000),chapter:z.string().max(300).optional()}).strict();
+const recentAnnotationSchema=z.object({kind:z.enum(['note','ai']),content:z.string().max(2000)}).strict();
+const boundarySchema=z.object({version:z.literal(1),source:z.literal('epub-cfi'),currentCfi:z.string().max(1000).startsWith('epubcfi('),chapterHref:z.string().min(1).max(1000),contextChars:z.number().int().nonnegative().max(16000),contextHash:z.string().regex(/^[a-f0-9]{64}$/)}).strict();
+const aiRequestSchema=z.object({
+  action:z.enum(ACTIONS),style:z.enum(STYLES).default('quiet'),selectedText:z.string().max(2000).default(''),chapterReadText:z.string().max(16000).default(''),selectionBefore:z.string().max(500).default(''),selectionAfter:z.string().max(500).default(''),previousMemory:z.string().max(3000).default(''),notes:z.array(noteSchema).max(8),recentAnnotations:z.array(recentAnnotationSchema).max(8).default([]),noSpoilers:z.boolean().default(true),boundaryProof:boundarySchema.optional()
+}).strict().superRefine((value,ctx)=>{
+  if(!value.selectedText.trim()&&!value.chapterReadText.trim())ctx.addIssue({code:'custom',message:'没有可用的已读内容。'});
+  if(value.noSpoilers){
+    if(!value.boundaryProof){ctx.addIssue({code:'custom',message:'禁止剧透模式需要有效的 EPUB CFI 阅读边界。'});return;}
+    const hash=crypto.createHash('sha256').update(value.chapterReadText).digest('hex');
+    if(value.boundaryProof.contextChars!==value.chapterReadText.length||value.boundaryProof.contextHash!==hash)ctx.addIssue({code:'custom',message:'已读内容与 CFI 边界证明不一致。'});
   }
-  if(!Array.isArray(body.notes)||body.notes.length>limits.notes)return{ok:false,error:'相关笔记数量超出限制。'};
-  for(const note of body.notes){
-    if(!note||typeof note!=='object'||typeof note.quote!=='string'||typeof note.content!=='string'||note.quote.length>1000||note.content.length>2000||('chapter' in note&&typeof note.chapter!=='string'))return{ok:false,error:'相关笔记格式或长度无效。'};
-  }
-  const recentAnnotations=body.recentAnnotations??[];
-  if(!Array.isArray(recentAnnotations)||recentAnnotations.length>8)return{ok:false,error:'最近批注数量超出限制。'};
-  for(const item of recentAnnotations)if(!item||typeof item!=='object'||typeof item.content!=='string'||item.content.length>2000||!['note','ai'].includes(item.kind))return{ok:false,error:'最近批注格式无效。'};
-  if(!string(body.selectedText).trim()&&!string(body.chapterReadText).trim())return{ok:false,error:'没有可用的已读内容。'};
-  if(body.noSpoilers!==false){
-    const proof=body.boundaryProof;
-    if(!proof||proof.version!==1||proof.source!=='epub-cfi'||!string(proof.currentCfi).startsWith('epubcfi(')||string(proof.currentCfi).length>1000||!string(proof.chapterHref)||string(proof.chapterHref).length>1000||!Number.isInteger(proof.contextChars)||!(/^[a-f0-9]{64}$/).test(string(proof.contextHash)))return{ok:false,error:'禁止剧透模式需要有效的 EPUB CFI 阅读边界。'};
-    const context=string(body.chapterReadText);
-    const hash=crypto.createHash('sha256').update(context).digest('hex');
-    if(proof.contextChars!==context.length||proof.contextHash!==hash)return{ok:false,error:'已读内容与 CFI 边界证明不一致。'};
-    for(const forbidden of ['fullChapter','chapterAfter','unreadText','nextChapter'])if(forbidden in body)return{ok:false,error:'禁止剧透模式不接受未读正文字段。'};
-  }
-  return{ok:true,value:{action,style,selectedText:string(body.selectedText),chapterReadText:string(body.chapterReadText),selectionBefore:string(body.selectionBefore),selectionAfter:string(body.selectionAfter),previousMemory:string(body.previousMemory),notes:body.notes,recentAnnotations,noSpoilers:body.noSpoilers!==false,boundaryProof:body.boundaryProof}};
-}
+});
 
-export function validateMemoryRequest(body){
-  if(!body||typeof body!=='object'||Array.isArray(body))return{ok:false,error:'章节记忆请求格式无效。'};
-  for(const field of ['bookId','chapterHref','chapterLabel','chapterText','endCfi'])if(typeof body[field]!=='string'||!body[field].trim())return{ok:false,error:`字段 ${field} 格式无效。`};
-  if(body.bookId.length>100||body.chapterHref.length>1000||body.chapterLabel.length>300||body.chapterText.length>30000||body.endCfi.length>1000)return{ok:false,error:'章节记忆字段超出长度限制。'};
-  if(!body.endCfi.startsWith('epubcfi('))return{ok:false,error:'章节记忆缺少有效的结束 CFI。'};
-  if(!Array.isArray(body.notes)||body.notes.length>20)return{ok:false,error:'章节笔记格式无效。'};
-  for(const note of body.notes)if(!note||typeof note!=='object'||typeof note.quote!=='string'||typeof note.content!=='string'||note.quote.length>1000||note.content.length>2000)return{ok:false,error:'章节笔记格式无效。'};
-  return{ok:true,value:{bookId:body.bookId,chapterHref:body.chapterHref,chapterLabel:body.chapterLabel,chapterText:body.chapterText,endCfi:body.endCfi,notes:body.notes}};
-}
+const memoryRequestSchema=z.object({bookId:z.string().min(1).max(100),chapterHref:z.string().min(1).max(1000),chapterLabel:z.string().min(1).max(300),chapterText:z.string().min(1).max(30000),endCfi:z.string().max(1000).startsWith('epubcfi('),notes:z.array(noteSchema.pick({quote:true,content:true})).max(20)}).strict();
+
+export function validateAiRequest(body){return result(aiRequestSchema.safeParse(body),'请求字段无效。');}
+export function validateMemoryRequest(body){return result(memoryRequestSchema.safeParse(body),'章节记忆请求字段无效。');}
 
 export function normalizeMemoryResponse(value){
   const input=value&&typeof value==='object'?value:{};
@@ -48,4 +29,4 @@ export function normalizeMemoryResponse(value){
   return Object.fromEntries(fields.map(field=>[field,Array.isArray(input[field])?input[field].filter(item=>typeof item==='string').map(item=>item.replace(/\s+/g,' ').trim().slice(0,300)).filter(Boolean).slice(0,8):[]]));
 }
 
-function string(value){return typeof value==='string'?value:'';}
+function result(parsed,fallback){if(parsed.success)return{ok:true,value:parsed.data};return{ok:false,error:parsed.error.issues.find(issue=>issue.code==='custom')?.message||fallback};}
