@@ -1,4 +1,6 @@
 import { app, BrowserWindow, dialog } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
 import { startServer } from '../server.mjs';
 
 let mainWindow;
@@ -22,6 +24,11 @@ if (!gotLock) {
 
 async function boot() {
   process.env.NODE_ENV = 'production';
+  const configDir = path.join(app.getPath('appData'), '页边的阿屿');
+  fs.mkdirSync(configDir, { recursive: true });
+  const configFile = path.join(configDir, '.env');
+  if (!fs.existsSync(configFile)) fs.writeFileSync(configFile, '# 在下一行填入你的 API Key\nAI_PROVIDER=compatible\nAI_BASE_URL=https://api.deepseek.com/v1\nAI_API_KEY=\nAI_MODEL=deepseek-chat\n', 'utf8');
+  process.env.AYU_CONFIG_FILE = configFile;
   runtime = await startServer({ production: true, port: 0, desktop: true });
   mainWindow = new BrowserWindow({
     width: 1360,

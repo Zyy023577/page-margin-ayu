@@ -12,7 +12,13 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 
 export async function startServer({ production = false, port = Number(process.env.PORT || 5173), desktop = false } = {}) {
   if (desktop) process.env.DESKTOP_APP = '1';
-  loadEnv(path.join(root, '.env'));
+  loadEnv([
+    path.join(root, '.env'),
+    process.env.AYU_CONFIG_FILE,
+    process.env.AYU_CONFIG_DIR && path.join(process.env.AYU_CONFIG_DIR, '.env'),
+    path.join(process.cwd(), '.env'),
+    path.join(path.dirname(process.execPath), '.env'),
+  ]);
   const app = express();
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
@@ -117,4 +123,4 @@ if (isMain) await startServer({ production: process.argv.includes('--production'
 
 function demoMemory(_text, notes) { return normalizeMemoryResponse({ facts: ['本章已读完（演示模式不生成具体情节摘要）'], userFocus: notes.slice(-5).map(note => `${note.quote}：${note.content}`), hypotheses: [] }); }
 function writeEvent(res, event, data) { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); }
-function loadEnv(file) { if (!fs.existsSync(file)) return; for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) { const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, ''); } }
+function loadEnv(files) { for (const file of files.filter(Boolean)) { if (!fs.existsSync(file)) continue; for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) { const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, ''); } } }
