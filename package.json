@@ -2,6 +2,8 @@
   "name": "page-margin-ayu",
   "private": true,
   "version": "1.0.0",
+  "description": "只读到你读到这里的 AI 小说共读应用",
+  "author": "页边的阿屿",
   "packageManager": "pnpm@11.19.0",
   "type": "module",
   "scripts": {
@@ -9,7 +11,9 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:spoiler": "vitest run src/readerContext.test.ts serverValidation.test.ts",
-    "preview": "node server.mjs --production"
+    "preview": "node server.mjs --production",
+    "desktop": "pnpm build && electron .",
+    "package:win": "pnpm build && electron-builder --win nsis"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -35,6 +39,42 @@
     "jsdom": "^30.0.1",
     "supertest": "^7.2.2",
     "typescript": "latest",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "main": "electron/main.mjs",
+  "build": {
+    "appId": "com.page.margin.ayu",
+    "productName": "页边的阿屿",
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "server.mjs",
+      "serverValidation.mjs",
+      "serverSecurity.mjs",
+      "providers/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "页边的阿屿-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "页边的阿屿"
+    }
   }
 }

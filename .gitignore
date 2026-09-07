@@ -4,6 +4,7 @@
 
 node_modules/
 dist/
+release*/
 *.tsbuildinfo
 
 # Local caches and test output
