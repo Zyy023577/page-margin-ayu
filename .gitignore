@@ -5,7 +5,7 @@
 node_modules/
 dist/
 release*/
-page-margin-ayu/
+page-margin-ayu*/
 *.tsbuildinfo
 
 # Local caches and test output
